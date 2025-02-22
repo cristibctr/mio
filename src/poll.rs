@@ -13,9 +13,9 @@
     )),
 ))]
 use std::os::fd::{AsRawFd, RawFd};
-#[cfg(all(debug_assertions, not(target_os = "wasi")))]
+#[cfg(all(debug_assertions, not(all(target_os = "wasi", not(target_vendor = "wasmer")))))]
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(all(debug_assertions, not(target_os = "wasi")))]
+#[cfg(all(debug_assertions, not(all(target_os = "wasi", not(target_vendor = "wasmer")))))]
 use std::sync::Arc;
 use std::time::Duration;
 use std::{fmt, io};
@@ -271,7 +271,7 @@ pub struct Poll {
 pub struct Registry {
     selector: sys::Selector,
     /// Whether this selector currently has an associated waker.
-    #[cfg(all(debug_assertions, not(target_os = "wasi")))]
+    #[cfg(all(debug_assertions, not(all(target_os = "wasi", not(target_vendor = "wasmer")))))]
     has_waker: Arc<AtomicBool>,
 }
 
@@ -321,7 +321,7 @@ impl Poll {
             sys::Selector::new().map(|selector| Poll {
                 registry: Registry {
                     selector,
-                    #[cfg(all(debug_assertions, not(target_os = "wasi")))]
+                    #[cfg(all(debug_assertions, not(all(target_os = "wasi", not(target_vendor = "wasmer")))))]
                     has_waker: Arc::new(AtomicBool::new(false)),
                 },
             })
@@ -708,7 +708,7 @@ impl Registry {
     pub fn try_clone(&self) -> io::Result<Registry> {
         self.selector.try_clone().map(|selector| Registry {
             selector,
-            #[cfg(all(debug_assertions, not(target_os = "wasi")))]
+            #[cfg(all(debug_assertions, not(all(target_os = "wasi", not(target_vendor = "wasmer")))))]
             has_waker: Arc::clone(&self.has_waker),
         })
     }
@@ -726,7 +726,7 @@ impl Registry {
 
     /// Get access to the `sys::Selector`.
     #[allow(dead_code)]
-    #[cfg(any(not(target_os = "wasi"), feature = "net", feature = "os-poll"))]
+    #[cfg(any(not(all(target_os = "wasi", not(target_vendor = "wasmer"))), feature = "net", feature = "os-poll"))]
     pub fn selector(&self) -> &sys::Selector {
         &self.selector
     }
