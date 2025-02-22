@@ -21,7 +21,7 @@ const CLIENT: Token = Token(1);
 const SERVER: Token = Token(2);
 
 #[test]
-#[cfg(all(unix, not(debug_assertions)))]
+#[cfg(all(unix, not(mio_unsupported_force_poll_poll), not(debug_assertions)))]
 fn assert_size() {
     use mio::net::*;
     use std::mem::size_of;
@@ -571,7 +571,11 @@ fn connect_error() {
 
         for event in &events {
             if event.token() == Token(0) {
-                assert!(event.is_writable());
+                // With fastopen we would be able to write
+                // Without fastopen we would be getting the connection error
+                assert!(event.is_writable() || event.is_error());
+                // Solaris poll(2) says POLLHUP and POLLOUT are mutually exclusive.
+                #[cfg(not(target_os = "solaris"))]
                 assert!(event.is_write_closed());
                 break 'outer;
             }
@@ -620,6 +624,7 @@ fn write_error() {
     let buf = [0; 1024];
     loop {
         match s.write(&buf) {
+            Ok(0) => panic!("unexpected end"),
             Ok(_) => {}
             Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => wait_writable(),
             Err(e) => {
@@ -698,7 +703,16 @@ fn write_shutdown() {
     // Now, shutdown the write half of the socket.
     socket.shutdown(Shutdown::Write).unwrap();
 
-    wait!(poll, is_readable, true);
+    // POLLRDHUP isn't supported on Solaris,
+    if cfg!(any(
+        target_os = "hurd",
+        target_os = "solaris",
+        target_os = "nto"
+    )) {
+        wait!(poll, is_readable, false);
+    } else {
+        wait!(poll, is_readable, true);
+    }
 }
 
 struct MyHandler {

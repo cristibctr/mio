@@ -33,6 +33,10 @@ fn unix_stream_send_and_sync() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
 fn unix_stream_smoke() {
     #[allow(clippy::redundant_closure)]
     smoke_test(|path| UnixStream::connect(path), "unix_stream_smoke");
@@ -78,6 +82,56 @@ fn unix_stream_connect() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
+fn unix_stream_connect_addr() {
+    let (mut poll, mut events) = init_with_poll();
+    let barrier = Arc::new(Barrier::new(2));
+
+    let path = temp_file("unix_stream_connect_addr");
+    let listener = net::UnixListener::bind(path.clone()).unwrap();
+    let mio_listener = mio::net::UnixListener::from_std(listener);
+
+    let local_addr = mio_listener.local_addr().unwrap();
+    let mut stream = UnixStream::connect_addr(&local_addr).unwrap();
+
+    let barrier_clone = barrier.clone();
+    let handle = thread::spawn(move || {
+        let (stream, _) = mio_listener.accept().unwrap();
+        barrier_clone.wait();
+        drop(stream);
+    });
+
+    poll.registry()
+        .register(
+            &mut stream,
+            TOKEN_1,
+            Interest::READABLE | Interest::WRITABLE,
+        )
+        .unwrap();
+    expect_events(
+        &mut poll,
+        &mut events,
+        vec![ExpectEvent::new(TOKEN_1, Interest::WRITABLE)],
+    );
+
+    barrier.wait();
+    expect_events(
+        &mut poll,
+        &mut events,
+        vec![ExpectEvent::new(TOKEN_1, Interest::READABLE)],
+    );
+
+    handle.join().unwrap();
+}
+
+#[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
 fn unix_stream_from_std() {
     smoke_test(
         |path| {
@@ -125,6 +179,10 @@ fn unix_stream_pair() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
 fn unix_stream_peer_addr() {
     init();
     let (handle, expected_addr) = new_echo_listener(1, "unix_stream_peer_addr");
@@ -144,6 +202,9 @@ fn unix_stream_peer_addr() {
 }
 
 #[test]
+#[cfg_attr(target_os = "hurd", ignore = "POLLRDHUP isn't supported on GNU/Hurd")]
+#[cfg_attr(target_os = "solaris", ignore = "POLLRDHUP isn't supported on Solaris")]
+#[cfg_attr(target_os = "nto", ignore = "POLLRDHUP isn't supported on NTO")]
 fn unix_stream_shutdown_read() {
     let (mut poll, mut events) = init_with_poll();
     let (handle, remote_addr) = new_echo_listener(1, "unix_stream_shutdown_read");
@@ -187,6 +248,7 @@ fn unix_stream_shutdown_read() {
         target_os = "netbsd",
         target_os = "openbsd",
         target_os = "tvos",
+        target_os = "visionos",
         target_os = "watchos",
     ))]
     {
@@ -200,6 +262,10 @@ fn unix_stream_shutdown_read() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
 fn unix_stream_shutdown_write() {
     let (mut poll, mut events) = init_with_poll();
     let (handle, remote_addr) = new_echo_listener(1, "unix_stream_shutdown_write");
@@ -236,6 +302,7 @@ fn unix_stream_shutdown_write() {
         target_os = "netbsd",
         target_os = "openbsd",
         target_os = "tvos",
+        target_os = "visionos",
         target_os = "watchos",
     ))]
     expect_events(
@@ -257,6 +324,10 @@ fn unix_stream_shutdown_write() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
 fn unix_stream_shutdown_both() {
     let (mut poll, mut events) = init_with_poll();
     let (handle, remote_addr) = new_echo_listener(1, "unix_stream_shutdown_both");
@@ -284,6 +355,8 @@ fn unix_stream_shutdown_both() {
     );
 
     stream.shutdown(Shutdown::Both).unwrap();
+    // Solaris never returns POLLHUP  for sockets.
+    #[cfg(not(target_os = "solaris"))]
     expect_events(
         &mut poll,
         &mut events,
@@ -300,6 +373,7 @@ fn unix_stream_shutdown_both() {
         target_os = "netbsd",
         target_os = "openbsd",
         target_os = "tvos",
+        target_os = "visionos",
         target_os = "watchos",
     ))]
     {
@@ -310,7 +384,7 @@ fn unix_stream_shutdown_both() {
     let err = stream.write(DATA2).unwrap_err();
     #[cfg(unix)]
     assert_eq!(err.kind(), io::ErrorKind::BrokenPipe);
-    #[cfg(window)]
+    #[cfg(windows)]
     assert_eq!(err.kind(), io::ErrorKind::ConnectionAbroted);
 
     // Close the connection to allow the remote to shutdown
@@ -319,6 +393,9 @@ fn unix_stream_shutdown_both() {
 }
 
 #[test]
+#[cfg_attr(target_os = "hurd", ignore = "POLLRDHUP isn't supported on GNU/Hurd")]
+#[cfg_attr(target_os = "solaris", ignore = "POLLRDHUP isn't supported on Solaris")]
+#[cfg_attr(target_os = "nto", ignore = "POLLRDHUP isn't supported on NTO")]
 fn unix_stream_shutdown_listener_write() {
     let (mut poll, mut events) = init_with_poll();
     let barrier = Arc::new(Barrier::new(2));
@@ -352,6 +429,10 @@ fn unix_stream_shutdown_listener_write() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
 fn unix_stream_register() {
     let (mut poll, mut events) = init_with_poll();
     let (handle, remote_addr) = new_echo_listener(1, "unix_stream_register");
@@ -369,6 +450,10 @@ fn unix_stream_register() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
 fn unix_stream_reregister() {
     let (mut poll, mut events) = init_with_poll();
     let (handle, remote_addr) = new_echo_listener(1, "unix_stream_reregister");
@@ -393,6 +478,10 @@ fn unix_stream_reregister() {
 }
 
 #[test]
+#[cfg_attr(
+    target_os = "hurd",
+    ignore = "getting pathname isn't supported on GNU/Hurd"
+)]
 fn unix_stream_deregister() {
     let (mut poll, mut events) = init_with_poll();
     let (handle, remote_addr) = new_echo_listener(1, "unix_stream_deregister");
@@ -450,6 +539,8 @@ where
     expect_read!(stream.read(&mut buf), DATA1);
 
     assert!(stream.take_error().unwrap().is_none());
+
+    assert_would_block(stream.read(&mut buf));
 
     let bufs = [IoSlice::new(DATA1), IoSlice::new(DATA2)];
     let wrote = stream.write_vectored(&bufs).unwrap();
