@@ -73,12 +73,24 @@ pub use interest::Interest;
 pub use poll::{Poll, Registry};
 pub use token::Token;
 
-mod wasi {
+pub mod wasi {
     #[cfg(all(target_os = "wasi", target_vendor = "unknown"))]
     pub use ::wasi::*;
     #[cfg(all(target_os = "wasi", target_vendor = "wasmer"))]
     #[allow(unused_imports)]
     pub use ::wasix::*;
+
+    #[cfg(all(target_os = "wasi", target_vendor = "wasmer"))]
+    pub mod pipe {
+        //! Unix pipe.
+        //!
+        //! See the [`new`] function for documentation.
+
+        pub use crate::sys::pipe::{new, Receiver, Sender};
+    }
+    #[cfg(all(target_os = "wasi", target_vendor = "wasmer"))]
+    #[allow(unused_imports)]
+    pub use crate::sys::SourceFd;
 }
 
 cfg_os_poll! {
