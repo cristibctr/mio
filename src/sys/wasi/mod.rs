@@ -15,6 +15,21 @@
 
 use std::io;
 
+
+#[cfg(target_vendor = "wasmer")]
+#[allow(unused_macros)]
+macro_rules! syscall {
+    ($fn: ident ( $($arg: expr),* $(,)* ) ) => {{
+        #[allow(unused_unsafe)]
+        let res = unsafe { libc::$fn($($arg, )*) };
+        if res < 0 {
+            Err(std::io::Error::last_os_error())
+        } else {
+            Ok(res)
+        }
+    }};
+}
+
 #[cfg(all(feature = "net", target_vendor = "unknown"))]
 use crate::{Interest, Token};
 
@@ -52,6 +67,7 @@ cfg_os_poll! {
         pub(crate) mod tcp;
         pub(crate) mod udp;
         pub(crate) mod pipe;
+        pub(crate) mod uds;
     }
 }
 
