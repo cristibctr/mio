@@ -1,6 +1,9 @@
 use std::net::Shutdown;
 use std::os::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd};
+#[cfg(unix)]
 use std::os::unix::net::{self, SocketAddr};
+#[cfg(target_vendor = "wasmer")]
+use std::os::wasi::net::{self, SocketAddr};
 use std::path::Path;
 use std::{fmt, io};
 

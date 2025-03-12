@@ -73,6 +73,8 @@ pub use interest::Interest;
 pub use poll::{Poll, Registry};
 pub use token::Token;
 
+#[cfg(all(target_vendor = "wasmer", feature = "os-ext"))]
+#[cfg_attr(docsrs, doc(cfg(all(unix, feature = "os-ext"))))]
 pub mod wasi {
     #[cfg(all(target_os = "wasi", target_vendor = "unknown"))]
     pub use ::wasi::*;
@@ -80,7 +82,6 @@ pub mod wasi {
     #[allow(unused_imports)]
     pub use ::wasix::*;
 
-    #[cfg(all(target_os = "wasi", target_vendor = "wasmer"))]
     pub mod pipe {
         //! Unix pipe.
         //!
@@ -88,8 +89,6 @@ pub mod wasi {
 
         pub use crate::sys::pipe::{new, Receiver, Sender};
     }
-    #[cfg(all(target_os = "wasi", target_vendor = "wasmer"))]
-    #[allow(unused_imports)]
     pub use crate::sys::SourceFd;
 }
 

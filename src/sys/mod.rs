@@ -78,6 +78,7 @@ cfg_not_os_poll! {
     #[cfg(all(target_os = "wasi", target_vendor = "wasmer"))]
     cfg_any_os_ext! {
         mod wasi;
+        #[cfg(feature = "os-ext")]
         pub use self::wasi::SourceFd;
     }
     #[cfg(all(target_os = "wasi", target_vendor = "wasmer"))]

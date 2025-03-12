@@ -1,6 +1,6 @@
 use std::io;
 use std::os::fd::FromRawFd;
-use std::os::unix::net::{self, SocketAddr};
+use std::os::wasi::net::{self, SocketAddr};
 
 use crate::sys::wasi::net::new_socket;
 use crate::sys::wasi::uds::unix_addr;

@@ -1,8 +1,6 @@
-#[cfg(target_os = "linux")]
-use std::os::linux::net::SocketAddrExt;
 use std::os::unix::ffi::OsStrExt;
-use std::os::unix::io::FromRawFd;
-use std::os::unix::net::SocketAddr;
+use std::os::wasi::io::FromRawFd;
+use std::os::wasi::net::SocketAddr;
 use std::{io, mem, ptr};
 
 pub(crate) mod datagram;
